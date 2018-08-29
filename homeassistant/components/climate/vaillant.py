@@ -8,7 +8,8 @@ https://home-assistant.io/components/climate.netatmo/
 import logging
 from datetime import timedelta
 import voluptuous as vol
-from homeassistant.const import TEMP_CELSIUS, ATTR_TEMPERATURE
+from homeassistant.const import (
+     TEMP_CELSIUS, ATTR_TEMPERATURE)
 from homeassistant.components.climate import (
     STATE_HEAT, STATE_IDLE, ClimateDevice, PLATFORM_SCHEMA,
     SUPPORT_TARGET_TEMPERATURE, SUPPORT_OPERATION_MODE, SUPPORT_AWAY_MODE)
@@ -70,19 +71,14 @@ class NetatmoThermostat(ClimateDevice):
         self._away = None
 
     @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._name
-
-    @property
     def supported_features(self):
         """Return the list of supported features."""
         return SUPPORT_FLAGS
 
     @property
-    def state(self):
-        """Return the state of the device."""
-        return self._target_temperature
+    def name(self):
+        """Return the name of the sensor."""
+        return self._name
 
     @property
     def temperature_unit(self):
