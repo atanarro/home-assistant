@@ -1,19 +1,20 @@
 # coding: utf-8
 """Constants used by Home Assistant components."""
 MAJOR_VERSION = 0
-MINOR_VERSION = 58
+MINOR_VERSION = 85
 PATCH_VERSION = '1'
 __short_version__ = '{}.{}'.format(MAJOR_VERSION, MINOR_VERSION)
 __version__ = '{}.{}'.format(__short_version__, PATCH_VERSION)
-REQUIRED_PYTHON_VER = (3, 4, 2)
-REQUIRED_PYTHON_VER_WIN = (3, 5, 2)
-CONSTRAINT_FILE = 'package_constraints.txt'
+REQUIRED_PYTHON_VER = (3, 5, 3)
 
 # Format for platforms
 PLATFORM_FORMAT = '{}.{}'
 
 # Can be used to specify a catch all when registering state or event listeners.
 MATCH_ALL = '*'
+
+# Entity target all constant
+ENTITY_MATCH_ALL = 'all'
 
 # If no name is specified
 DEVICE_DEFAULT_NAME = 'Unnamed Device'
@@ -29,8 +30,11 @@ CONF_ADDRESS = 'address'
 CONF_AFTER = 'after'
 CONF_ALIAS = 'alias'
 CONF_API_KEY = 'api_key'
+CONF_API_VERSION = 'api_version'
 CONF_AT = 'at'
 CONF_AUTHENTICATION = 'authentication'
+CONF_AUTH_MFA_MODULES = 'auth_mfa_modules'
+CONF_AUTH_PROVIDERS = 'auth_providers'
 CONF_BASE = 'base'
 CONF_BEFORE = 'before'
 CONF_BELOW = 'below'
@@ -52,6 +56,7 @@ CONF_CURRENCY = 'currency'
 CONF_CUSTOMIZE = 'customize'
 CONF_CUSTOMIZE_DOMAIN = 'customize_domain'
 CONF_CUSTOMIZE_GLOB = 'customize_glob'
+CONF_DELAY_TIME = 'delay_time'
 CONF_DEVICE = 'device'
 CONF_DEVICE_CLASS = 'device_class'
 CONF_DEVICES = 'devices'
@@ -74,10 +79,13 @@ CONF_EXCLUDE = 'exclude'
 CONF_FILE_PATH = 'file_path'
 CONF_FILENAME = 'filename'
 CONF_FOR = 'for'
+CONF_FORCE_UPDATE = 'force_update'
 CONF_FRIENDLY_NAME = 'friendly_name'
+CONF_FRIENDLY_NAME_TEMPLATE = 'friendly_name_template'
 CONF_HEADERS = 'headers'
 CONF_HOST = 'host'
 CONF_HOSTS = 'hosts'
+CONF_HS = 'hs'
 CONF_ICON = 'icon'
 CONF_ICON_TEMPLATE = 'icon_template'
 CONF_INCLUDE = 'include'
@@ -124,6 +132,7 @@ CONF_SENSOR_TYPE = 'sensor_type'
 CONF_SENSORS = 'sensors'
 CONF_SHOW_ON_MAP = 'show_on_map'
 CONF_SLAVE = 'slave'
+CONF_SOURCE = 'source'
 CONF_SSL = 'ssl'
 CONF_STATE = 'state'
 CONF_STATE_TEMPLATE = 'state_template'
@@ -134,6 +143,7 @@ CONF_TIME_ZONE = 'time_zone'
 CONF_TIMEOUT = 'timeout'
 CONF_TOKEN = 'token'
 CONF_TRIGGER_TIME = 'trigger_time'
+CONF_TTL = 'ttl'
 CONF_TYPE = 'type'
 CONF_UNIT_OF_MEASUREMENT = 'unit_of_measurement'
 CONF_UNIT_SYSTEM = 'unit_system'
@@ -141,6 +151,7 @@ CONF_URL = 'url'
 CONF_USERNAME = 'username'
 CONF_VALUE_TEMPLATE = 'value_template'
 CONF_VERIFY_SSL = 'verify_ssl'
+CONF_WEBHOOK_ID = 'webhook_id'
 CONF_WEEKDAY = 'weekday'
 CONF_WHITELIST = 'whitelist'
 CONF_WHITELIST_EXTERNAL_DIRS = 'whitelist_external_dirs'
@@ -155,13 +166,23 @@ EVENT_HOMEASSISTANT_CLOSE = 'homeassistant_close'
 EVENT_STATE_CHANGED = 'state_changed'
 EVENT_TIME_CHANGED = 'time_changed'
 EVENT_CALL_SERVICE = 'call_service'
-EVENT_SERVICE_EXECUTED = 'service_executed'
 EVENT_PLATFORM_DISCOVERED = 'platform_discovered'
 EVENT_COMPONENT_LOADED = 'component_loaded'
 EVENT_SERVICE_REGISTERED = 'service_registered'
 EVENT_SERVICE_REMOVED = 'service_removed'
 EVENT_LOGBOOK_ENTRY = 'logbook_entry'
 EVENT_THEMES_UPDATED = 'themes_updated'
+EVENT_TIMER_OUT_OF_SYNC = 'timer_out_of_sync'
+EVENT_AUTOMATION_TRIGGERED = 'automation_triggered'
+EVENT_SCRIPT_STARTED = 'script_started'
+
+# #### DEVICE CLASSES ####
+DEVICE_CLASS_BATTERY = 'battery'
+DEVICE_CLASS_HUMIDITY = 'humidity'
+DEVICE_CLASS_ILLUMINANCE = 'illuminance'
+DEVICE_CLASS_TEMPERATURE = 'temperature'
+DEVICE_CLASS_TIMESTAMP = 'timestamp'
+DEVICE_CLASS_PRESSURE = 'pressure'
 
 # #### STATES ####
 STATE_ON = 'on'
@@ -181,6 +202,7 @@ STATE_ALARM_DISARMED = 'disarmed'
 STATE_ALARM_ARMED_HOME = 'armed_home'
 STATE_ALARM_ARMED_AWAY = 'armed_away'
 STATE_ALARM_ARMED_NIGHT = 'armed_night'
+STATE_ALARM_ARMED_CUSTOM_BYPASS = 'armed_custom_bypass'
 STATE_ALARM_PENDING = 'pending'
 STATE_ALARM_ARMING = 'arming'
 STATE_ALARM_DISARMING = 'disarming'
@@ -202,6 +224,7 @@ ATTR_CREDENTIALS = 'credentials'
 ATTR_NOW = 'now'
 ATTR_DATE = 'date'
 ATTR_TIME = 'time'
+ATTR_SECONDS = 'seconds'
 
 # Contains domain, service for a SERVICE_CALL event
 ATTR_DOMAIN = 'domain'
@@ -211,8 +234,8 @@ ATTR_SERVICE_DATA = 'service_data'
 # IDs
 ATTR_ID = 'id'
 
-# Data for a SERVICE_EXECUTED event
-ATTR_SERVICE_CALL_ID = 'service_call_id'
+# Name
+ATTR_NAME = 'name'
 
 # Contains one string or a list of strings, each being an entity id
 ATTR_ENTITY_ID = 'entity_id'
@@ -241,6 +264,7 @@ ATTR_DISCOVERED = 'discovered'
 # Location of the device/sensor
 ATTR_LOCATION = 'location'
 
+ATTR_BATTERY_CHARGING = 'battery_charging'
 ATTR_BATTERY_LEVEL = 'battery_level'
 ATTR_WAKEUP = 'wake_up_interval'
 
@@ -347,7 +371,9 @@ SERVICE_ALARM_DISARM = 'alarm_disarm'
 SERVICE_ALARM_ARM_HOME = 'alarm_arm_home'
 SERVICE_ALARM_ARM_AWAY = 'alarm_arm_away'
 SERVICE_ALARM_ARM_NIGHT = 'alarm_arm_night'
+SERVICE_ALARM_ARM_CUSTOM_BYPASS = 'alarm_arm_custom_bypass'
 SERVICE_ALARM_TRIGGER = 'alarm_trigger'
+
 
 SERVICE_LOCK = 'lock'
 SERVICE_UNLOCK = 'unlock'
@@ -393,7 +419,9 @@ HTTP_UNAUTHORIZED = 401
 HTTP_NOT_FOUND = 404
 HTTP_METHOD_NOT_ALLOWED = 405
 HTTP_UNPROCESSABLE_ENTITY = 422
+HTTP_TOO_MANY_REQUESTS = 429
 HTTP_INTERNAL_SERVER_ERROR = 500
+HTTP_SERVICE_UNAVAILABLE = 503
 
 HTTP_BASIC_AUTHENTICATION = 'basic'
 HTTP_DIGEST_AUTHENTICATION = 'digest'
@@ -423,3 +451,7 @@ WEEKDAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 PRECISION_WHOLE = 1
 PRECISION_HALVES = 0.5
 PRECISION_TENTHS = 0.1
+
+# Static list of entities that will never be exposed to
+# cloud, alexa, or google_home components
+CLOUD_NEVER_EXPOSED_ENTITIES = ['group.all_locks']

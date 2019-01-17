@@ -7,16 +7,17 @@ https://home-assistant.io/components/sensor.volvooncall/
 """
 import logging
 
-from homeassistant.components.volvooncall import VolvoEntity, RESOURCES
+from homeassistant.components.volvooncall import VolvoEntity, DATA_KEY
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def setup_platform(hass, config, add_devices, discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities,
+                               discovery_info=None):
     """Set up the Volvo sensors."""
     if discovery_info is None:
         return
-    add_devices([VolvoSensor(hass, *discovery_info)])
+    async_add_entities([VolvoSensor(hass.data[DATA_KEY], *discovery_info)])
 
 
 class VolvoSensor(VolvoEntity):
@@ -24,18 +25,10 @@ class VolvoSensor(VolvoEntity):
 
     @property
     def state(self):
-        """Return the state of the sensor."""
-        val = getattr(self.vehicle, self._attribute)
-        if self._attribute == 'odometer':
-            return round(val / 1000)  # km
-        return val
+        """Return the state."""
+        return self.instrument.state
 
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement."""
-        return RESOURCES[self._attribute][3]
-
-    @property
-    def icon(self):
-        """Return the icon."""
-        return RESOURCES[self._attribute][2]
+        return self.instrument.unit

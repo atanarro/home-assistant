@@ -6,7 +6,6 @@ https://home-assistant.io/components/hdmi_cec/
 """
 import logging
 import multiprocessing
-import os
 from collections import defaultdict
 from functools import reduce
 
@@ -16,7 +15,6 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers import discovery
 from homeassistant.components.media_player import DOMAIN as MEDIA_PLAYER
 from homeassistant.components.switch import DOMAIN as SWITCH
-from homeassistant.config import load_yaml_config_file
 from homeassistant.const import (EVENT_HOMEASSISTANT_START, STATE_UNKNOWN,
                                  EVENT_HOMEASSISTANT_STOP, STATE_ON,
                                  STATE_OFF, CONF_DEVICES, CONF_PLATFORM,
@@ -37,7 +35,7 @@ CONF_TYPES = 'types'
 ICON_UNKNOWN = 'mdi:help'
 ICON_AUDIO = 'mdi:speaker'
 ICON_PLAYER = 'mdi:play'
-ICON_TUNER = 'mdi:nest-thermostat'
+ICON_TUNER = 'mdi:radio'
 ICON_RECORDER = 'mdi:microphone'
 ICON_TV = 'mdi:television'
 ICONS_BY_TYPE = {
@@ -301,17 +299,12 @@ def setup(hass: HomeAssistant, base_config):
 
     def _start_cec(event):
         """Register services and start HDMI network to watch for devices."""
-        descriptions = load_yaml_config_file(
-            os.path.join(os.path.dirname(__file__), 'services.yaml'))[DOMAIN]
         hass.services.register(DOMAIN, SERVICE_SEND_COMMAND, _tx,
-                               descriptions[SERVICE_SEND_COMMAND],
                                SERVICE_SEND_COMMAND_SCHEMA)
         hass.services.register(DOMAIN, SERVICE_VOLUME, _volume,
-                               descriptions[SERVICE_VOLUME],
-                               SERVICE_VOLUME_SCHEMA)
+                               schema=SERVICE_VOLUME_SCHEMA)
         hass.services.register(DOMAIN, SERVICE_UPDATE_DEVICES, _update,
-                               descriptions[SERVICE_UPDATE_DEVICES],
-                               SERVICE_UPDATE_DEVICES_SCHEMA)
+                               schema=SERVICE_UPDATE_DEVICES_SCHEMA)
         hass.services.register(DOMAIN, SERVICE_POWER_ON, _power_on)
         hass.services.register(DOMAIN, SERVICE_STANDBY, _standby)
         hass.services.register(DOMAIN, SERVICE_SELECT_DEVICE, _select_device)
@@ -327,38 +320,39 @@ def setup(hass: HomeAssistant, base_config):
 class CecDevice(Entity):
     """Representation of a HDMI CEC device entity."""
 
-    def __init__(self, hass: HomeAssistant, device, logical):
+    def __init__(self, device, logical) -> None:
         """Initialize the device."""
         self._device = device
-        self.hass = hass
         self._icon = None
         self._state = STATE_UNKNOWN
         self._logical_address = logical
         self.entity_id = "%s.%d" % (DOMAIN, self._logical_address)
-        device.set_update_callback(self._update)
 
     def update(self):
         """Update device status."""
-        self._update()
+        device = self._device
+        from pycec.const import STATUS_PLAY, STATUS_STOP, STATUS_STILL, \
+            POWER_OFF, POWER_ON
+        if device.power_status in [POWER_OFF, 3]:
+            self._state = STATE_OFF
+        elif device.status == STATUS_PLAY:
+            self._state = STATE_PLAYING
+        elif device.status == STATUS_STOP:
+            self._state = STATE_IDLE
+        elif device.status == STATUS_STILL:
+            self._state = STATE_PAUSED
+        elif device.power_status in [POWER_ON, 4]:
+            self._state = STATE_ON
+        else:
+            _LOGGER.warning("Unknown state: %d", device.power_status)
+
+    async def async_added_to_hass(self):
+        """Register HDMI callbacks after initialization."""
+        self._device.set_update_callback(self._update)
 
     def _update(self, device=None):
-        """Update device status."""
-        if device:
-            from pycec.const import STATUS_PLAY, STATUS_STOP, STATUS_STILL, \
-                POWER_OFF, POWER_ON
-            if device.power_status == POWER_OFF:
-                self._state = STATE_OFF
-            elif device.status == STATUS_PLAY:
-                self._state = STATE_PLAYING
-            elif device.status == STATUS_STOP:
-                self._state = STATE_IDLE
-            elif device.status == STATUS_STILL:
-                self._state = STATE_PAUSED
-            elif device.power_status == POWER_ON:
-                self._state = STATE_ON
-            else:
-                _LOGGER.warning("Unknown state: %d", device.power_status)
-        self.schedule_update_ha_state()
+        """Device status changed, schedule an update."""
+        self.schedule_update_ha_state(True)
 
     @property
     def name(self):

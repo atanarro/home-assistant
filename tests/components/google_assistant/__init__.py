@@ -36,7 +36,7 @@ DEMO_DEVICES = [{
     'traits': [
         'action.devices.traits.OnOff'
     ],
-    'type': 'action.devices.types.LIGHT',  # This is used for custom type
+    'type': 'action.devices.types.SWITCH',
     'willReportState':
     False
 }, {
@@ -75,16 +75,16 @@ DEMO_DEVICES = [{
     'name': {
         'name': 'all lights'
     },
-    'traits': ['action.devices.traits.Scene'],
-    'type': 'action.devices.types.SCENE',
+    'traits': ['action.devices.traits.OnOff'],
+    'type': 'action.devices.types.SWITCH',
     'willReportState': False
 }, {
     'id': 'group.all_switches',
     'name': {
         'name': 'all switches'
     },
-    'traits': ['action.devices.traits.Scene'],
-    'type': 'action.devices.types.SCENE',
+    'traits': ['action.devices.traits.OnOff'],
+    'type': 'action.devices.types.SWITCH',
     'willReportState': False
 }, {
     'id':
@@ -95,7 +95,7 @@ DEMO_DEVICES = [{
     'traits':
     ['action.devices.traits.OnOff', 'action.devices.traits.Brightness'],
     'type':
-    'action.devices.types.LIGHT',
+    'action.devices.types.SWITCH',
     'willReportState':
     False
 }, {
@@ -107,7 +107,7 @@ DEMO_DEVICES = [{
     'traits':
     ['action.devices.traits.OnOff', 'action.devices.traits.Brightness'],
     'type':
-    'action.devices.types.LIGHT',
+    'action.devices.types.SWITCH',
     'willReportState':
     False
 }, {
@@ -116,7 +116,7 @@ DEMO_DEVICES = [{
         'name': 'Garage Door'
     },
     'traits': ['action.devices.traits.OnOff'],
-    'type': 'action.devices.types.LIGHT',
+    'type': 'action.devices.types.SWITCH',
     'willReportState': False
 }, {
     'id': 'cover.kitchen_window',
@@ -124,15 +124,15 @@ DEMO_DEVICES = [{
         'name': 'Kitchen Window'
     },
     'traits': ['action.devices.traits.OnOff'],
-    'type': 'action.devices.types.LIGHT',
+    'type': 'action.devices.types.SWITCH',
     'willReportState': False
 }, {
     'id': 'group.all_covers',
     'name': {
         'name': 'all covers'
     },
-    'traits': ['action.devices.traits.Scene'],
-    'type': 'action.devices.types.SCENE',
+    'traits': ['action.devices.traits.OnOff'],
+    'type': 'action.devices.types.SWITCH',
     'willReportState': False
 }, {
     'id':
@@ -141,9 +141,12 @@ DEMO_DEVICES = [{
         'name': 'Bedroom'
     },
     'traits':
-    ['action.devices.traits.OnOff', 'action.devices.traits.Brightness'],
+        [
+            'action.devices.traits.OnOff', 'action.devices.traits.Brightness',
+            'action.devices.traits.Modes'
+        ],
     'type':
-    'action.devices.types.LIGHT',
+    'action.devices.types.SWITCH',
     'willReportState':
     False
 }, {
@@ -153,9 +156,12 @@ DEMO_DEVICES = [{
         'name': 'Living Room'
     },
     'traits':
-    ['action.devices.traits.OnOff', 'action.devices.traits.Brightness'],
+        [
+            'action.devices.traits.OnOff', 'action.devices.traits.Brightness',
+            'action.devices.traits.Modes'
+        ],
     'type':
-    'action.devices.types.LIGHT',
+    'action.devices.types.SWITCH',
     'willReportState':
     False
 }, {
@@ -163,8 +169,8 @@ DEMO_DEVICES = [{
     'name': {
         'name': 'Lounge room'
     },
-    'traits': ['action.devices.traits.OnOff'],
-    'type': 'action.devices.types.LIGHT',
+    'traits': ['action.devices.traits.OnOff', 'action.devices.traits.Modes'],
+    'type': 'action.devices.types.SWITCH',
     'willReportState': False
 }, {
     'id':
@@ -175,7 +181,7 @@ DEMO_DEVICES = [{
     'traits':
     ['action.devices.traits.OnOff', 'action.devices.traits.Brightness'],
     'type':
-    'action.devices.types.LIGHT',
+    'action.devices.types.SWITCH',
     'willReportState':
     False
 }, {
@@ -183,24 +189,30 @@ DEMO_DEVICES = [{
     'name': {
         'name': 'Living Room Fan'
     },
-    'traits': ['action.devices.traits.OnOff'],
-    'type': 'action.devices.types.SWITCH',
+    'traits': [
+        'action.devices.traits.FanSpeed',
+        'action.devices.traits.OnOff'
+        ],
+    'type': 'action.devices.types.FAN',
     'willReportState': False
 }, {
     'id': 'fan.ceiling_fan',
     'name': {
         'name': 'Ceiling Fan'
     },
-    'traits': ['action.devices.traits.OnOff'],
-    'type': 'action.devices.types.SWITCH',
+    'traits': [
+        'action.devices.traits.FanSpeed',
+        'action.devices.traits.OnOff'
+        ],
+    'type': 'action.devices.types.FAN',
     'willReportState': False
 }, {
     'id': 'group.all_fans',
     'name': {
         'name': 'all fans'
     },
-    'traits': ['action.devices.traits.Scene'],
-    'type': 'action.devices.types.SCENE',
+    'traits': ['action.devices.traits.OnOff'],
+    'type': 'action.devices.types.SWITCH',
     'willReportState': False
 }, {
     'id': 'climate.hvac',
@@ -211,7 +223,7 @@ DEMO_DEVICES = [{
     'type': 'action.devices.types.THERMOSTAT',
     'willReportState': False,
     'attributes': {
-        'availableThermostatModes': 'heat,cool,off',
+        'availableThermostatModes': 'heat,cool,heatcool,off',
         'thermostatTemperatureUnit': 'C',
     },
 }, {
@@ -219,7 +231,10 @@ DEMO_DEVICES = [{
     'name': {
         'name': 'HeatPump'
     },
-    'traits': ['action.devices.traits.TemperatureSetting'],
+    'traits': [
+        'action.devices.traits.OnOff',
+        'action.devices.traits.TemperatureSetting'
+    ],
     'type': 'action.devices.types.THERMOSTAT',
     'willReportState': False
 }, {
@@ -229,5 +244,29 @@ DEMO_DEVICES = [{
     },
     'traits': ['action.devices.traits.TemperatureSetting'],
     'type': 'action.devices.types.THERMOSTAT',
+    'willReportState': False
+}, {
+    'id': 'lock.front_door',
+    'name': {
+        'name': 'Front Door'
+    },
+    'traits': ['action.devices.traits.LockUnlock'],
+    'type': 'action.devices.types.LOCK',
+    'willReportState': False
+}, {
+    'id': 'lock.kitchen_door',
+    'name': {
+        'name': 'Kitchen Door'
+    },
+    'traits': ['action.devices.traits.LockUnlock'],
+    'type': 'action.devices.types.LOCK',
+    'willReportState': False
+}, {
+    'id': 'lock.openable_lock',
+    'name': {
+        'name': 'Openable Lock'
+    },
+    'traits': ['action.devices.traits.LockUnlock'],
+    'type': 'action.devices.types.LOCK',
     'willReportState': False
 }]

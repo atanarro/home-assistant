@@ -1,4 +1,6 @@
 """The tests for the hddtemp platform."""
+import socket
+
 import unittest
 from unittest.mock import patch
 
@@ -56,6 +58,13 @@ VALID_CONFIG_HOST = {
     }
 }
 
+VALID_CONFIG_HOST_UNREACHABLE = {
+    'sensor': {
+        'platform': 'hddtemp',
+        'host': 'bob.local',
+    }
+}
+
 
 class TelnetMock():
     """Mock class for the telnetlib.Telnet object."""
@@ -75,6 +84,8 @@ class TelnetMock():
         """Return sample values."""
         if self.host == 'alice.local':
             raise ConnectionRefusedError
+        elif self.host == 'bob.local':
+            raise socket.gaierror
         else:
             return self.sample_data
         return None
@@ -118,13 +129,13 @@ class TestHDDTempSensor(unittest.TestCase):
 
         reference = self.reference[state.attributes.get('device')]
 
-        self.assertEqual(state.state, reference['temperature'])
-        self.assertEqual(state.attributes.get('device'), reference['device'])
-        self.assertEqual(state.attributes.get('model'), reference['model'])
-        self.assertEqual(state.attributes.get('unit_of_measurement'),
-                         reference['unit_of_measurement'])
-        self.assertEqual(state.attributes.get('friendly_name'),
-                         'HD Temperature ' + reference['device'])
+        assert state.state == reference['temperature']
+        assert state.attributes.get('device') == reference['device']
+        assert state.attributes.get('model') == reference['model']
+        assert state.attributes.get('unit_of_measurement') == \
+            reference['unit_of_measurement']
+        assert state.attributes.get('friendly_name') == \
+            'HD Temperature ' + reference['device']
 
     @patch('telnetlib.Telnet', new=TelnetMock)
     def test_hddtemp_rename_config(self):
@@ -136,32 +147,35 @@ class TestHDDTempSensor(unittest.TestCase):
 
         reference = self.reference[state.attributes.get('device')]
 
-        self.assertEqual(state.attributes.get('friendly_name'),
-                         'FooBar ' + reference['device'])
+        assert state.attributes.get('friendly_name') == \
+            'FooBar ' + reference['device']
 
     @patch('telnetlib.Telnet', new=TelnetMock)
     def test_hddtemp_one_disk(self):
         """Test hddtemp one disk configuration."""
         assert setup_component(self.hass, 'sensor', VALID_CONFIG_ONE_DISK)
 
-        state = self.hass.states.get('sensor.hd_temperature_devsdd1')
+        state = self.hass.states.get('sensor.hd_temperature_dev_sdd1')
 
         reference = self.reference[state.attributes.get('device')]
 
-        self.assertEqual(state.state, reference['temperature'])
-        self.assertEqual(state.attributes.get('device'), reference['device'])
-        self.assertEqual(state.attributes.get('model'), reference['model'])
-        self.assertEqual(state.attributes.get('unit_of_measurement'),
-                         reference['unit_of_measurement'])
-        self.assertEqual(state.attributes.get('friendly_name'),
-                         'HD Temperature ' + reference['device'])
+        assert state.state == reference['temperature']
+        assert state.attributes.get('device') == reference['device']
+        assert state.attributes.get('model') == reference['model']
+        assert state.attributes.get('unit_of_measurement') == \
+            reference['unit_of_measurement']
+        assert state.attributes.get('friendly_name') == \
+            'HD Temperature ' + reference['device']
 
     @patch('telnetlib.Telnet', new=TelnetMock)
     def test_hddtemp_wrong_disk(self):
         """Test hddtemp wrong disk configuration."""
         assert setup_component(self.hass, 'sensor', VALID_CONFIG_WRONG_DISK)
 
-        self.assertEqual(len(self.hass.states.all()), 0)
+        assert len(self.hass.states.all()) == 1
+        state = self.hass.states.get('sensor.hd_temperature_dev_sdx1')
+        assert state.attributes.get('friendly_name') == \
+            'HD Temperature ' + '/dev/sdx1'
 
     @patch('telnetlib.Telnet', new=TelnetMock)
     def test_hddtemp_multiple_disks(self):
@@ -169,27 +183,34 @@ class TestHDDTempSensor(unittest.TestCase):
         assert setup_component(self.hass,
                                'sensor', VALID_CONFIG_MULTIPLE_DISKS)
 
-        for sensor in ['sensor.hd_temperature_devsda1',
-                       'sensor.hd_temperature_devsdb1',
-                       'sensor.hd_temperature_devsdc1']:
+        for sensor in ['sensor.hd_temperature_dev_sda1',
+                       'sensor.hd_temperature_dev_sdb1',
+                       'sensor.hd_temperature_dev_sdc1']:
 
             state = self.hass.states.get(sensor)
 
             reference = self.reference[state.attributes.get('device')]
 
-            self.assertEqual(state.state,
-                             reference['temperature'])
-            self.assertEqual(state.attributes.get('device'),
-                             reference['device'])
-            self.assertEqual(state.attributes.get('model'),
-                             reference['model'])
-            self.assertEqual(state.attributes.get('unit_of_measurement'),
-                             reference['unit_of_measurement'])
-            self.assertEqual(state.attributes.get('friendly_name'),
-                             'HD Temperature ' + reference['device'])
+            assert state.state == \
+                reference['temperature']
+            assert state.attributes.get('device') == \
+                reference['device']
+            assert state.attributes.get('model') == \
+                reference['model']
+            assert state.attributes.get('unit_of_measurement') == \
+                reference['unit_of_measurement']
+            assert state.attributes.get('friendly_name') == \
+                'HD Temperature ' + reference['device']
+
+    @patch('telnetlib.Telnet', new=TelnetMock)
+    def test_hddtemp_host_refused(self):
+        """Test hddtemp if host unreachable."""
+        assert setup_component(self.hass, 'sensor', VALID_CONFIG_HOST)
+        assert len(self.hass.states.all()) == 0
 
     @patch('telnetlib.Telnet', new=TelnetMock)
     def test_hddtemp_host_unreachable(self):
         """Test hddtemp if host unreachable."""
-        assert setup_component(self.hass, 'sensor', VALID_CONFIG_HOST)
-        self.assertEqual(len(self.hass.states.all()), 0)
+        assert setup_component(self.hass, 'sensor',
+                               VALID_CONFIG_HOST_UNREACHABLE)
+        assert len(self.hass.states.all()) == 0

@@ -16,6 +16,7 @@ def pymochad_mock():
     """Mock pymochad."""
     with mock.patch.dict('sys.modules', {
         'pymochad': mock.MagicMock(),
+        'pymochad.exceptions': mock.MagicMock(),
     }):
         yield
 
@@ -28,7 +29,7 @@ class TestMochadSwitchSetup(unittest.TestCase):
     THING = 'switch'
 
     def setUp(self):
-        """Setup things to be run when tests are started."""
+        """Set up things to be run when tests are started."""
         self.hass = get_test_home_assistant()
 
     def tearDown(self):
@@ -50,14 +51,14 @@ class TestMochadSwitchSetup(unittest.TestCase):
                 ],
             }
         }
-        self.assertTrue(setup_component(self.hass, switch.DOMAIN, good_config))
+        assert setup_component(self.hass, switch.DOMAIN, good_config)
 
 
 class TestMochadSwitch(unittest.TestCase):
     """Test for mochad switch platform."""
 
     def setUp(self):
-        """Setup things to be run when tests are started."""
+        """Set up things to be run when tests are started."""
         self.hass = get_test_home_assistant()
         controller_mock = mock.MagicMock()
         dev_dict = {'address': 'a1', 'name': 'fake_switch'}
@@ -70,14 +71,14 @@ class TestMochadSwitch(unittest.TestCase):
 
     def test_name(self):
         """Test the name."""
-        self.assertEqual('fake_switch', self.switch.name)
+        assert 'fake_switch' == self.switch.name
 
     def test_turn_on(self):
         """Test turn_on."""
         self.switch.turn_on()
-        self.switch.device.send_cmd.assert_called_once_with('on')
+        self.switch.switch.send_cmd.assert_called_once_with('on')
 
     def test_turn_off(self):
         """Test turn_off."""
         self.switch.turn_off()
-        self.switch.device.send_cmd.assert_called_once_with('off')
+        self.switch.switch.send_cmd.assert_called_once_with('off')

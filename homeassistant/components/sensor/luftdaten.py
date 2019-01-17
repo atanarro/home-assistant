@@ -4,139 +4,123 @@ Support for Luftdaten sensors.
 For more details about this platform, please refer to the documentation at
 https://home-assistant.io/components/sensor.luftdaten/
 """
-import asyncio
-import json
 import logging
-from datetime import timedelta
 
-import requests
-import voluptuous as vol
-
-from homeassistant.components.sensor import PLATFORM_SCHEMA
+from homeassistant.components.luftdaten import (
+    DATA_LUFTDATEN, DATA_LUFTDATEN_CLIENT, DEFAULT_ATTRIBUTION, DOMAIN,
+    SENSORS, TOPIC_UPDATE)
+from homeassistant.components.luftdaten.const import ATTR_SENSOR_ID
 from homeassistant.const import (
-    CONF_NAME, CONF_RESOURCE, CONF_VERIFY_SSL, CONF_MONITORED_CONDITIONS,
-    TEMP_CELSIUS)
+    ATTR_ATTRIBUTION, ATTR_LATITUDE, ATTR_LONGITUDE, CONF_SHOW_ON_MAP)
+from homeassistant.core import callback
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
-import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
-VOLUME_MICROGRAMS_PER_CUBIC_METER = 'µg/m3'
-
-SENSOR_TEMPERATURE = 'temperature'
-SENSOR_HUMIDITY = 'humidity'
-SENSOR_PM10 = 'P1'
-SENSOR_PM2_5 = 'P2'
-
-SENSOR_TYPES = {
-    SENSOR_TEMPERATURE: ['Temperature', TEMP_CELSIUS],
-    SENSOR_HUMIDITY: ['Humidity', '%'],
-    SENSOR_PM10: ['PM10', VOLUME_MICROGRAMS_PER_CUBIC_METER],
-    SENSOR_PM2_5: ['PM2.5', VOLUME_MICROGRAMS_PER_CUBIC_METER]
-}
-
-DEFAULT_NAME = 'Luftdaten Sensor'
-DEFAULT_RESOURCE = 'https://api.luftdaten.info/v1/sensor/'
-DEFAULT_VERIFY_SSL = True
-
-CONF_SENSORID = 'sensorid'
-
-SCAN_INTERVAL = timedelta(minutes=3)
-
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_SENSORID): cv.positive_int,
-    vol.Required(CONF_MONITORED_CONDITIONS):
-        vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
-    vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    vol.Optional(CONF_RESOURCE, default=DEFAULT_RESOURCE): cv.string,
-    vol.Optional(CONF_VERIFY_SSL, default=DEFAULT_VERIFY_SSL): cv.boolean
-})
+DEPENDENCIES = ['luftdaten']
 
 
-@asyncio.coroutine
-def async_setup_platform(hass, config, async_add_devices, discovery_info=None):
-    """Set up the Luftdaten sensor."""
-    name = config.get(CONF_NAME)
-    sensorid = config.get(CONF_SENSORID)
-    verify_ssl = config.get(CONF_VERIFY_SSL)
+async def async_setup_platform(
+        hass, config, async_add_entities, discovery_info=None):
+    """Set up an Luftdaten sensor based on existing config."""
+    pass
 
-    resource = '{}{}/'.format(config.get(CONF_RESOURCE), sensorid)
 
-    rest_client = LuftdatenData(resource, verify_ssl)
-    rest_client.update()
+async def async_setup_entry(hass, entry, async_add_entities):
+    """Set up a Luftdaten sensor based on a config entry."""
+    luftdaten = hass.data[DOMAIN][DATA_LUFTDATEN_CLIENT][entry.entry_id]
 
-    if rest_client.data is None:
-        _LOGGER.error("Unable to fetch Luftdaten data")
-        return False
+    sensors = []
+    for sensor_type in luftdaten.sensor_conditions:
+        name, icon, unit = SENSORS[sensor_type]
+        sensors.append(
+            LuftdatenSensor(
+                luftdaten, sensor_type, name, icon, unit,
+                entry.data[CONF_SHOW_ON_MAP]))
 
-    devices = []
-    for variable in config[CONF_MONITORED_CONDITIONS]:
-        devices.append(LuftdatenSensor(rest_client, name, variable))
-
-    async_add_devices(devices, True)
+    async_add_entities(sensors, True)
 
 
 class LuftdatenSensor(Entity):
-    """Implementation of a LuftdatenSensor sensor."""
+    """Implementation of a Luftdaten sensor."""
 
-    def __init__(self, rest_client, name, sensor_type):
-        """Initialize the LuftdatenSensor sensor."""
-        self.rest_client = rest_client
+    def __init__(
+            self, luftdaten, sensor_type, name, icon, unit, show):
+        """Initialize the Luftdaten sensor."""
+        self._async_unsub_dispatcher_connect = None
+        self.luftdaten = luftdaten
+        self._icon = icon
         self._name = name
-        self._state = None
+        self._data = None
         self.sensor_type = sensor_type
-        self._unit_of_measurement = SENSOR_TYPES[sensor_type][1]
+        self._unit_of_measurement = unit
+        self._show_on_map = show
+        self._attrs = {}
 
     @property
-    def name(self):
-        """Return the name of the sensor."""
-        return '{} {}'.format(self._name, SENSOR_TYPES[self.sensor_type][0])
+    def icon(self):
+        """Return the icon."""
+        return self._icon
 
     @property
     def state(self):
         """Return the state of the device."""
-        return self._state
+        if self._data is not None:
+            return self._data[self.sensor_type]
 
     @property
     def unit_of_measurement(self):
         """Return the unit of measurement of this entity, if any."""
         return self._unit_of_measurement
 
-    def update(self):
-        """Get the latest data from REST API and update the state."""
-        self.rest_client.update()
-        value = self.rest_client.data
+    @property
+    def should_poll(self):
+        """Disable polling."""
+        return False
 
-        if value is None:
-            self._state = None
-        else:
-            parsed_json = json.loads(value)
+    @property
+    def unique_id(self) -> str:
+        """Return a unique, friendly identifier for this entity."""
+        if self._data is not None:
+            return '{0}_{1}'.format(self._data['sensor_id'], self.sensor_type)
 
-            log_entries_count = len(parsed_json) - 1
-            latest_log_entry = parsed_json[log_entries_count]
-            sensordata_values = latest_log_entry['sensordatavalues']
-            for sensordata_value in sensordata_values:
-                if sensordata_value['value_type'] == self.sensor_type:
-                    self._state = sensordata_value['value']
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        self._attrs[ATTR_ATTRIBUTION] = DEFAULT_ATTRIBUTION
 
+        if self._data is not None:
+            self._attrs[ATTR_SENSOR_ID] = self._data['sensor_id']
 
-class LuftdatenData(object):
-    """Class for handling the data retrieval."""
+            on_map = ATTR_LATITUDE, ATTR_LONGITUDE
+            no_map = 'lat', 'long'
+            lat_format, lon_format = on_map if self._show_on_map else no_map
+            try:
+                self._attrs[lon_format] = self._data['longitude']
+                self._attrs[lat_format] = self._data['latitude']
+                return self._attrs
+            except KeyError:
+                return
 
-    def __init__(self, resource, verify_ssl):
-        """Initialize the data object."""
-        self._request = requests.Request('GET', resource).prepare()
-        self._verify_ssl = verify_ssl
-        self.data = None
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+        @callback
+        def update():
+            """Update the state."""
+            self.async_schedule_update_ha_state(True)
 
-    def update(self):
-        """Get the latest data from Luftdaten service."""
+        self._async_unsub_dispatcher_connect = async_dispatcher_connect(
+            self.hass, TOPIC_UPDATE, update)
+
+    async def async_will_remove_from_hass(self):
+        """Disconnect dispatcher listener when removed."""
+        if self._async_unsub_dispatcher_connect:
+            self._async_unsub_dispatcher_connect()
+
+    async def async_update(self):
+        """Get the latest data and update the state."""
         try:
-            with requests.Session() as sess:
-                response = sess.send(
-                    self._request, timeout=10, verify=self._verify_ssl)
-
-            self.data = response.text
-        except requests.exceptions.RequestException:
-            _LOGGER.error("Error fetching data: %s", self._request)
-            self.data = None
+            self._data = self.luftdaten.data[DATA_LUFTDATEN]
+        except KeyError:
+            return
